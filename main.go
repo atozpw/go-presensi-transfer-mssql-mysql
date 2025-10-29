@@ -61,12 +61,24 @@ type Checkinout struct {
 	Temperature int
 }
 
+type CheckinoutPeriod struct {
+	Userid     int
+	Checktime  time.Time
+	Checktype  sql.NullString
+	Verifycode int
+	Sensorid   sql.NullString
+	Memoinfo   sql.NullString
+	Workcode   sql.NullString
+	Sn         sql.NullString
+	Userextfmt int
+}
+
 func main() {
 
 	c := cron.New()
 
-	// Schedule tiap hari pukul 10:00 (format cron: "0 10 * * *")
-	_, err := c.AddFunc("0 10 * * *", func() {
+	// Schedule tiap hari pukul 09:30 (format cron: "30 9 * * *")
+	_, err := c.AddFunc("30 9 * * *", func() {
 		Migrate()
 	})
 	if err != nil {
@@ -194,6 +206,71 @@ func Migrate() {
 	log.Printf("✅ Selesai! Total baris dipindahkan: %d\n", totalU)
 
 	// --- Parameter ---
+	const batchSizeCP = 10000
+	const workerCountCP = 5 // jumlah goroutine worker
+	offsetCP := 0
+
+	// --- Channel untuk kirim batch data ke worker ---
+	batchChanCP := make(chan []CheckinoutPeriod, workerCountCP)
+	var wgCP sync.WaitGroup
+
+	// --- Jalankan worker ---
+	for i := 0; i < workerCountCP; i++ {
+		wgCP.Add(1)
+		go func(workerID int) {
+			defer wgCP.Done()
+			for batch := range batchChanCP {
+				err := insertBatchCP(destDB, batch)
+				if err != nil {
+					log.Printf("Worker %d: Gagal insert batch (%v)\n", workerID, err)
+				} else {
+					log.Printf("Worker %d: Selesai insert %d baris\n", workerID, len(batch))
+				}
+			}
+		}(i + 1)
+	}
+
+	totalCP := 0
+	for {
+		query := fmt.Sprintf(`
+			SELECT userid, checktime, checktype, verifycode, sensorid, memoinfo, workcode, sn, userextfmt 
+			FROM v_checkinout_interval_4_months
+			ORDER BY checktime
+			OFFSET %d ROWS FETCH NEXT %d ROWS ONLY`, offsetCP, batchSizeCP)
+
+		rows, err := srcDB.Query(query)
+		if err != nil {
+			log.Fatal("Query error:", err)
+		}
+
+		var batch []CheckinoutPeriod
+		for rows.Next() {
+			var r CheckinoutPeriod
+			if err := rows.Scan(&r.Userid, &r.Checktime, &r.Checktype, &r.Verifycode, &r.Sensorid, &r.Memoinfo, &r.Workcode, &r.Sn, &r.Userextfmt); err != nil {
+				log.Println("Scan error:", err)
+				continue
+			}
+			batch = append(batch, r)
+		}
+		rows.Close()
+
+		if len(batch) == 0 {
+			break // tidak ada lagi data
+		}
+
+		batchChanCP <- batch // kirim ke worker
+		totalCP += len(batch)
+		offsetCP += batchSizeCP
+
+		log.Printf("📦 Kirim batch %d (total %d baris)\n", offsetCP/batchSizeCP, totalCP)
+	}
+
+	close(batchChanCP)
+	wgCP.Wait()
+
+	log.Printf("✅ Selesai! Total baris dipindahkan: %d\n", totalCP)
+
+	// --- Parameter ---
 	const batchSizeC = 10000
 	const workerCountC = 5 // jumlah goroutine worker
 	offsetC := 0
@@ -278,6 +355,38 @@ func insertBatchC(db *sql.DB, batch []Checkinout) error {
 	}
 
 	query := fmt.Sprintf("INSERT INTO checkinout (userid, checktime, checktype, verifycode, sensorid, memoinfo, workcode, sn, userextfmt, mask_flag, temperature) VALUES %s", strings.Join(values, ","))
+	tx, err := db.Begin()
+	if err != nil {
+		return err
+	}
+
+	_, err = tx.Exec(query)
+	if err != nil {
+		tx.Rollback()
+		return err
+	}
+	return tx.Commit()
+
+}
+
+func insertBatchCP(db *sql.DB, batch []CheckinoutPeriod) error {
+
+	if len(batch) == 0 {
+		return nil
+	}
+
+	var values []string
+	for _, r := range batch {
+		checktime := r.Checktime.Format("2006-01-02 15:04:05")
+		checktype := strings.ReplaceAll(r.Checktype.String, "'", "''")
+		sensorid := strings.ReplaceAll(r.Sensorid.String, "'", "''")
+		memoinfo := strings.ReplaceAll(r.Memoinfo.String, "'", "''")
+		workcode := strings.ReplaceAll(r.Workcode.String, "'", "''")
+		sn := strings.ReplaceAll(r.Sn.String, "'", "''")
+		values = append(values, fmt.Sprintf("(%d, '%s', '%s', %d, '%s', '%s', '%s', '%s', %d)", r.Userid, checktime, checktype, r.Verifycode, sensorid, memoinfo, workcode, sn, r.Userextfmt))
+	}
+
+	query := fmt.Sprintf("INSERT INTO checkinout_interval_4_months (userid, checktime, checktype, verifycode, sensorid, memoinfo, workcode, sn, userextfmt) VALUES %s", strings.Join(values, ","))
 	tx, err := db.Begin()
 	if err != nil {
 		return err
