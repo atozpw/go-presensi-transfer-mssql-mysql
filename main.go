@@ -78,51 +78,51 @@ func main() {
 	c := cron.New()
 
 	// Schedule tiap hari pukul 07:30 (format cron: "30 7 * * *")
-	_, err := c.AddFunc("30 7 * * *", func() {
+	_, err0 := c.AddFunc("30 7 * * *", func() {
 		Migrate()
 	})
-	if err != nil {
-		log.Fatal("Gagal menjadwalkan job:", err)
+	if err0 != nil {
+		log.Fatal("Gagal menjadwalkan job:", err0)
 	}
 
 	// Schedule tiap hari pukul 09:30 (format cron: "30 9 * * *")
-	_, err := c.AddFunc("30 9 * * *", func() {
+	_, err1 := c.AddFunc("30 9 * * *", func() {
 		Migrate()
 	})
-	if err != nil {
-		log.Fatal("Gagal menjadwalkan job:", err)
+	if err1 != nil {
+		log.Fatal("Gagal menjadwalkan job:", err1)
 	}
 
 	// Schedule tiap hari pukul 11:30 (format cron: "30 11 * * *")
-	_, err := c.AddFunc("30 11 * * *", func() {
+	_, err2 := c.AddFunc("30 11 * * *", func() {
 		Migrate()
 	})
-	if err != nil {
-		log.Fatal("Gagal menjadwalkan job:", err)
+	if err2 != nil {
+		log.Fatal("Gagal menjadwalkan job:", err2)
 	}
 
 	// Schedule tiap hari pukul 13:30 (format cron: "30 13 * * *")
-	_, err := c.AddFunc("30 13 * * *", func() {
+	_, err3 := c.AddFunc("30 13 * * *", func() {
 		Migrate()
 	})
-	if err != nil {
-		log.Fatal("Gagal menjadwalkan job:", err)
+	if err3 != nil {
+		log.Fatal("Gagal menjadwalkan job:", err3)
 	}
 
 	// Schedule tiap hari pukul 15:30 (format cron: "30 15 * * *")
-	_, err := c.AddFunc("30 15 * * *", func() {
+	_, err4 := c.AddFunc("30 15 * * *", func() {
 		Migrate()
 	})
-	if err != nil {
-		log.Fatal("Gagal menjadwalkan job:", err)
+	if err4 != nil {
+		log.Fatal("Gagal menjadwalkan job:", err4)
 	}
 
 	// Schedule tiap hari pukul 17:30 (format cron: "30 17 * * *")
-	_, err := c.AddFunc("30 17 * * *", func() {
+	_, err5 := c.AddFunc("30 17 * * *", func() {
 		Migrate()
 	})
-	if err != nil {
-		log.Fatal("Gagal menjadwalkan job:", err)
+	if err5 != nil {
+		log.Fatal("Gagal menjadwalkan job:", err5)
 	}
 
 	// Jalankan cron scheduler
