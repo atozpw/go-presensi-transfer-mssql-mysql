@@ -77,8 +77,48 @@ func main() {
 
 	c := cron.New()
 
+	// Schedule tiap hari pukul 07:30 (format cron: "30 7 * * *")
+	_, err := c.AddFunc("30 7 * * *", func() {
+		Migrate()
+	})
+	if err != nil {
+		log.Fatal("Gagal menjadwalkan job:", err)
+	}
+
 	// Schedule tiap hari pukul 09:30 (format cron: "30 9 * * *")
 	_, err := c.AddFunc("30 9 * * *", func() {
+		Migrate()
+	})
+	if err != nil {
+		log.Fatal("Gagal menjadwalkan job:", err)
+	}
+
+	// Schedule tiap hari pukul 11:30 (format cron: "30 11 * * *")
+	_, err := c.AddFunc("30 11 * * *", func() {
+		Migrate()
+	})
+	if err != nil {
+		log.Fatal("Gagal menjadwalkan job:", err)
+	}
+
+	// Schedule tiap hari pukul 13:30 (format cron: "30 13 * * *")
+	_, err := c.AddFunc("30 13 * * *", func() {
+		Migrate()
+	})
+	if err != nil {
+		log.Fatal("Gagal menjadwalkan job:", err)
+	}
+
+	// Schedule tiap hari pukul 15:30 (format cron: "30 15 * * *")
+	_, err := c.AddFunc("30 15 * * *", func() {
+		Migrate()
+	})
+	if err != nil {
+		log.Fatal("Gagal menjadwalkan job:", err)
+	}
+
+	// Schedule tiap hari pukul 17:30 (format cron: "30 17 * * *")
+	_, err := c.AddFunc("30 17 * * *", func() {
 		Migrate()
 	})
 	if err != nil {
